@@ -1,0 +1,73 @@
+version: '3.8'
+
+x-vrijbrp-postgres-env:
+  environment: &vrijbrp-postgres-env
+    POSTGRES_USER: vrijbrp
+    POSTGRES_PASSWORD: vrijbrp
+    # POSTGRES_DB: vrijbrp
+
+services:
+  vrijbrp-postgres:
+    image: vrijbrp/postgres:11-1.0.1
+    environment: 
+      <<: *vrijbrp-postgres-env
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - 5432:5432
+    networks:
+      - vrijbrp
+    volumes:
+      - vrijbrp-postgres-data:/var/lib/postgresql/data
+  
+  vrijbrp-pgadmin:
+    profiles:
+      - pgadmin
+    image: dpage/pgadmin4:${PGADMIN_VERSION:-latest}
+    user: root
+    ports:
+      - 5050:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@wearefrank.nl
+      PGADMIN_DEFAULT_PASSWORD: admin
+    networks:
+      - vrijbrp
+    depends_on:
+      - vrijbrp-postgres
+
+  vrijbrp-dosier:
+    image: vrijbrp/dossiers:develop
+    ports:
+      - 8080:8080
+    environment:
+      - spring.datasource.url=jdbc:postgresql://vrijbrp-postgres:5432/0000_test_dossiers
+      - spring.datasource.username=vrijbrp
+      - spring.datasource.password=vrijbrp
+    networks:
+      - vrijbrp
+    depends_on:
+      - vrijbrp-postgres
+# app_db_name=postgres
+# app_db_server=<postgres server>
+# app_db_port=5432
+# app_db_schema=<postgres schema>
+# app_db_sid=<postgres SID>
+# app_db_username=<postgres username>
+# app_db_password=<postgres password>
+  vrijbrp-balie:
+    image: vrijbrp/balie:develop
+    ports:
+      - 8081:8080
+    environment:
+      - app_db_server=vrijbrp-postgres
+      - app_db_username==vrijbrp
+      - app_db_password=vrijbrp
+    networks:
+      - vrijbrp
+    depends_on:
+      - vrijbrp-postgres
+
+networks:
+  vrijbrp:
+
+volumes:
+  vrijbrp-postgres-data:
